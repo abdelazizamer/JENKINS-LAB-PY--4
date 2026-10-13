@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Getting Repo files') {
             steps {
-                git branch: "main", credentialsId: 'jenkins-token', url: "${REPO_URL}"
+                git branch: "main", credentialsId: 'jenkinsToken', url: "${REPO_URL}"
             }
         }
 
@@ -44,16 +44,18 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh """
-                        // وقف واحذف الكونتينر القديم لو موجود عشان ما يحصلش konflik في البورت أو الاسم
-                        docker stop "${APP_NAME}-running" || true
-                        docker rm "${APP_NAME}-running" || true
+                    withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                            # وقف واحذف الكونتينر القديم لو موجود عشان ما يحصلش conflict في البورت أو الاسم
+                            docker stop "${APP_NAME}-running" || true
+                            docker rm "${APP_NAME}-running" || true
 
-                        // تشغيل الكونتينر الجديد
-                        docker run -d -p 5000:5000 --name "${APP_NAME}-running" ${DOCKER_USERNAME}/${APP_NAME}:${BUILD_NUMBER}
-                        
-                        docker ps
-                    """
+                            # تشغيل الكونتينر الجديد باستخدام اسم المستخدم الصحيح
+                            docker run -d -p 5000:5000 --name "${APP_NAME}-running" ${DOCKER_USERNAME}/${APP_NAME}:${BUILD_NUMBER}
+                            
+                            docker ps
+                        """
+                    }
                 }
             }
         }
